@@ -3,7 +3,7 @@ import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavContainer, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { Observable, Subject, filter, map, shareReplay, takeUntil, withLatestFrom } from 'rxjs';
@@ -30,6 +30,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 })
 export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
   @ViewChild('drawer') drawer?: MatSidenav;
+  @ViewChild('sidenavContainer') sidenavContainer?: MatSidenavContainer;
   readonly isHandset$: Observable<boolean>;
   private readonly destroy$ = new Subject<void>();
 
@@ -48,6 +49,7 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
 
   toggleLanguage(): void {
     this.languageService.toggle();
+    this.recalculateLayout();
   }
 
   ngAfterViewInit(): void {
@@ -62,10 +64,23 @@ export class DashboardLayoutComponent implements AfterViewInit, OnDestroy {
           this.drawer?.close();
         }
       });
+
+    this.languageService.language$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.recalculateLayout());
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private recalculateLayout(): void {
+    requestAnimationFrame(() => {
+      this.sidenavContainer?.updateContentMargins();
+      requestAnimationFrame(() => {
+        this.sidenavContainer?.updateContentMargins();
+      });
+    });
   }
 }

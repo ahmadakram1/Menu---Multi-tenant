@@ -19,3 +19,15 @@ function require_auth($config) {
     }
     return $payload;
 }
+
+function require_admin(array $payload): void {
+    if (($payload['role'] ?? '') !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Admin access required']);
+        exit;
+    }
+}
+
+function is_admin(array $payload): bool {
+    return ($payload['role'] ?? '') === 'admin';
+}

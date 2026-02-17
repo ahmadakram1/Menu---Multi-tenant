@@ -3,12 +3,72 @@
     "LANGUAGE": "Language"
   },
   "LOGIN": {
-    "TITLE": "Admin Login",
-    "SUBTITLE": "Welcome back! Please sign in to manage your menu.",
+    "TITLE": "Dashboard Sign In",
+    "SUBTITLE": "Access your control panel to manage your digital menu.",
+    "KICKER": "Secure business access",
+    "HERO_TITLE": "Manage your menu with confidence",
+    "HERO_SUBTITLE": "Use one professional dashboard to control approvals, access, branding, and daily menu updates.",
+    "POINT1": "Role-based access for admin and business owners",
+    "POINT2": "Fast updates for items, categories, and themes",
+    "POINT3": "Reliable email notifications for key actions",
     "EMAIL": "Email",
     "PASSWORD": "Password",
     "REMEMBER": "Remember me",
-    "SUBMIT": "Login"
+    "FORGOT_PASSWORD": "Forgot password?",
+    "SUBMIT": "Login",
+    "REGISTER": "Create account"
+  },
+  "RESET_PASSWORD": {
+    "TITLE": "Reset your password",
+    "SUBTITLE": "Enter your email, then verify with OTP to set a new password.",
+    "EMAIL": "Email",
+    "OTP": "OTP code",
+    "NEW_PASSWORD": "New password",
+    "SEND_OTP": "Send OTP",
+    "RESEND_OTP": "Resend OTP",
+    "RESET_ACTION": "Reset password",
+    "OTP_SENT": "OTP sent to your email. It expires in 5 minutes.",
+    "SUCCESS": "Password reset successful. You can login now.",
+    "EMAIL_REQUIRED": "Please enter your email.",
+    "FIELDS_REQUIRED": "Please complete OTP and new password."
+  },
+  "REGISTER": {
+    "TITLE": "Create Account",
+    "SUBTITLE": "Set up your account and start managing your digital menu.",
+    "KICKER": "Grow your business online",
+    "HERO_TITLE": "Launch your digital menu in minutes",
+    "HERO_SUBTITLE": "Attract more customers with a modern menu experience, full control dashboard, and instant updates.",
+    "POINT1_TITLE": "Your own branded menu",
+    "POINT1_TEXT": "Every business gets its own menu link, categories, items, and visual identity.",
+    "POINT2_TITLE": "Simple management dashboard",
+    "POINT2_TEXT": "Update prices, images, categories, and details easily with no technical background.",
+    "POINT3_TITLE": "Fast approval process",
+    "POINT3_TEXT": "Registration requests are approved within 12 to 24 hours.",
+    "RESTAURANT_NAME": "Business or Restaurant Name",
+    "NAME_HINT": "Enter the name. You can set the final menu name later from the dashboard.",
+    "EMAIL": "Email",
+    "PHONE": "Phone",
+    "PASSWORD": "Password",
+    "SUBMIT": "Register",
+    "SUBMITTING": "Submitting...",
+    "BACK_TO_LOGIN": "Back to login",
+    "CONTACT_TITLE": "Need help? Contact us:"
+  },
+  "OTP": {
+    "TITLE": "Verify OTP",
+    "SUBTITLE": "Enter the verification code sent to your email.",
+    "EMAIL": "Email",
+    "CODE": "OTP Code",
+    "SUBMIT": "Verify",
+    "BACK_TO_LOGIN": "Back to login"
+  },
+  "AUTH_MESSAGES": {
+    "INVALID_CREDENTIALS": "The email or password is incorrect.",
+    "REGISTER_SUCCESS": "Your registration request has been received. A confirmation email has been sent. Approval usually takes 12 to 24 hours.",
+    "REGISTRATION_FAILED": "Registration could not be completed. Please try again.",
+    "ACCOUNT_NAME_INVALID": "Please enter a valid name.",
+    "OTP_VERIFIED": "Verification completed successfully. Redirecting to your dashboard.",
+    "OTP_FAILED": "OTP verification failed. Please try again."
   },
   "DASHBOARD": {
     "TITLE": "Dashboard",
@@ -30,9 +90,14 @@
     "CONFIRM_DELETE": "Are you sure you want to delete?"
   },
   "SETTINGS": {
-    "TITLE": "Menu Settings",
-    "NAME_AR": "Menu Name (AR)",
-    "NAME_EN": "Menu Name (EN)",
+    "TITLE": "Business Profile",
+    "NAME_AR": "Business Name (AR)",
+    "NAME_EN": "Business Name (EN)",
+    "THEME_PRESETS": "Ready Theme Presets",
+    "THEME_PREVIEW": "Live theme preview",
+    "PRESET_CLASSIC": "Classic",
+    "PRESET_COFFEE": "Coffee",
+    "PRESET_MODERN": "Modern",
     "LOGO": "Logo Upload",
     "PHONE": "Phone",
     "WHATSAPP": "WhatsApp",
@@ -67,13 +132,65 @@
     "DESC_EN": "Description (EN)",
     "IMAGE": "Image Upload",
     "PRICE": "Price",
-    "CATEGORY": "Category"
+    "CATEGORY": "Category",
+    "ALL_CATEGORIES": "All Categories"
+  },
+  "APPROVALS": {
+    "TITLE": "Registration approvals",
+    "SUBTITLE": "Review new registrations and send a clear decision by email.",
+    "ALL": "All",
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "REGISTERED_COUNT": "Registered menus",
+    "APPROVED_COUNT": "Approved menus",
+    "STATUS": "Status",
+    "APPROVE": "Save",
+    "REJECT": "Reject",
+    "MENU_LINK": "Menu link",
+    "CLIENT_EMAIL": "Client email",
+    "CLIENT_PASSWORD": "New client password",
+    "SAVE_CREDENTIALS": "Save client credentials",
+    "EMAIL_TEMPLATE": "Email template",
+    "EMAIL_TEMPLATE_BILINGUAL": "Arabic + English",
+    "EMAIL_TEMPLATE_AR": "Arabic only",
+    "EMAIL_TEMPLATE_EN": "English only",
+    "MENU_ENABLED": "Menu enabled",
+    "MENU_ENABLE": "Enable menu",
+    "MENU_DISABLE": "Disable menu",
+    "START_DATE": "Start date",
+    "END_DATE": "End date",
+    "SAVE_ACCESS": "Save access settings",
+    "SAVED_WITH_EMAIL": "Saved successfully and email sent to client",
+    "SAVED_WITH_EMAIL_WARNING": "Saved successfully, but email was not sent"
   },
   "SIDEBAR": {
     "HOME": "Dashboard Home",
-    "RESTAURANT": "Menu Settings",
+    "RESTAURANT": "Business Profile",
     "CATEGORIES": "Categories",
     "ITEMS": "Items",
-    "LOGOUT": "Logout"
+    "LOGOUT": "Logout",
+    "APPROVALS": "Approvals",
+    "SECURITY": "Security",
+    "ACCESS": "Client Credentials",
+    "MENU_ACCESS": "Menu Activation"
+  },
+  "ACCESS": {
+    "TITLE": "Client credentials",
+    "SUBTITLE": "Update each client email and password from one place."
+  },
+  "MENU_ACCESS": {
+    "TITLE": "Menu activation and schedule",
+    "SUBTITLE": "Activate or deactivate the menu with immediate confirmation and email notification.",
+    "CONFIRM_TITLE": "Confirm menu access change",
+    "CONFIRM_ENABLE": "Are you sure you want to enable this menu now?",
+    "CONFIRM_DISABLE": "Are you sure you want to disable this menu now?",
+    "CONFIRM_ACTION": "Confirm"
+  },
+  "SECURITY": {
+    "TITLE": "Admin Security Settings",
+    "ADMIN_EMAIL": "Admin email",
+    "NEW_PASSWORD": "New password",
+    "SAVE": "Save credentials"
   }
 }

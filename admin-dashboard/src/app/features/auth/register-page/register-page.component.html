@@ -1,0 +1,105 @@
+<div class="register-page">
+  <div class="register-shell">
+    <section class="hero-panel">
+      <div class="hero-content">
+        <p class="hero-kicker">{{ 'REGISTER.KICKER' | t }}</p>
+        <h1>{{ 'REGISTER.HERO_TITLE' | t }}</h1>
+        <p class="hero-subtitle">{{ 'REGISTER.HERO_SUBTITLE' | t }}</p>
+
+        <div class="hero-points">
+          <div class="hero-point">
+            <span class="point-icon">1</span>
+            <div>
+              <strong>{{ 'REGISTER.POINT1_TITLE' | t }}</strong>
+              <p>{{ 'REGISTER.POINT1_TEXT' | t }}</p>
+            </div>
+          </div>
+          <div class="hero-point">
+            <span class="point-icon">2</span>
+            <div>
+              <strong>{{ 'REGISTER.POINT2_TITLE' | t }}</strong>
+              <p>{{ 'REGISTER.POINT2_TEXT' | t }}</p>
+            </div>
+          </div>
+          <div class="hero-point">
+            <span class="point-icon">3</span>
+            <div>
+              <strong>{{ 'REGISTER.POINT3_TITLE' | t }}</strong>
+              <p>{{ 'REGISTER.POINT3_TEXT' | t }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <mat-card class="register-card">
+      <div class="register-header">
+        <div>
+          <h2>{{ 'REGISTER.TITLE' | t }}</h2>
+          <p>{{ 'REGISTER.SUBTITLE' | t }}</p>
+        </div>
+        <button mat-stroked-button type="button" class="lang-toggle" (click)="toggleLanguage()">
+          {{ languageService.language === 'ar' ? 'EN' : 'AR' }}
+        </button>
+      </div>
+      <mat-card-content>
+        <form (ngSubmit)="submit()" class="register-form">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'REGISTER.RESTAURANT_NAME' | t }}</mat-label>
+            <input
+              matInput
+              name="businessName"
+              [(ngModel)]="businessName"
+              required
+            />
+          </mat-form-field>
+          <div class="name-guidance">
+            <mat-icon>info</mat-icon>
+            <span>{{ 'REGISTER.NAME_HINT' | t }}</span>
+          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'REGISTER.EMAIL' | t }}</mat-label>
+            <input matInput type="email" name="email" [(ngModel)]="email" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'REGISTER.PHONE' | t }}</mat-label>
+            <input matInput name="phone" [(ngModel)]="phone" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'REGISTER.PASSWORD' | t }}</mat-label>
+            <input matInput type="password" name="password" [(ngModel)]="password" required />
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="submit" class="register-submit">
+            <span *ngIf="!isSubmitting">{{ 'REGISTER.SUBMIT' | t }}</span>
+            <span class="submit-loading" *ngIf="isSubmitting">
+              <mat-progress-spinner mode="indeterminate" diameter="18"></mat-progress-spinner>
+              {{ 'REGISTER.SUBMITTING' | t }}
+            </span>
+          </button>
+          <button mat-button type="button" class="register-link" routerLink="/login">
+            {{ 'REGISTER.BACK_TO_LOGIN' | t }}
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <footer class="register-footer">
+    <div class="support-icons" aria-label="support links">
+      <a class="support-link" href="mailto:ak.64&#64;outlook.com" aria-label="Email support">
+        <mat-icon>mail</mat-icon>
+        <span>ak.64&#64;outlook.com</span>
+      </a>
+      <a
+        class="support-link"
+        href="https://wa.me/971561156889"
+        target="_blank"
+        rel="noopener"
+        aria-label="WhatsApp support"
+      >
+        <mat-icon>chat</mat-icon>
+        <span>+971561156889</span>
+      </a>
+    </div>
+    <div class="copyright-note">© 2026 جميع الحقوق محفوظة</div>
+  </footer>
+</div>

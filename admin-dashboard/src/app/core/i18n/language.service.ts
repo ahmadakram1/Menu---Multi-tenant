@@ -33,9 +33,6 @@ export class LanguageService {
     this.current$.next(language);
     this.persistLanguage(language);
     this.applyLanguage(language);
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
   }
 
   toggle(): void {

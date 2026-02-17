@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/core/layout/sidebar/sidebar.component.scss"],
+  "sourcesContent": [".sidebar-list {\r\n  padding: 14px 12px;\r\n  background: #ffffff;\r\n}\r\n\r\n.sidebar-list .mat-mdc-list-item {\r\n  border-radius: 14px;\r\n  margin: 6px 0;\r\n  padding-inline: 14px;\r\n  font-weight: 500;\r\n  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;\r\n}\r\n\r\n.sidebar-list .mat-mdc-list-item:hover {\r\n  background: rgba(59, 130, 246, 0.08);\r\n}\r\n\r\n.sidebar-list .active-link {\r\n  background: rgba(59, 130, 246, 0.14);\r\n  color: #1d4ed8;\r\n  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);\r\n}\r\n\r\n.sidebar-list .mat-icon {\r\n  margin-inline-end: 12px;\r\n  color: inherit;\r\n}\r\n"],
+  "mappings": ";AAAA,CAAA;AACE,WAAA,KAAA;AACA,cAAA;;AAGF,CALA,aAKA,CAAA;AACE,iBAAA;AACA,UAAA,IAAA;AACA,kBAAA;AACA,eAAA;AACA;IAAA,WAAA,KAAA,IAAA;IAAA,MAAA,KAAA,IAAA;IAAA,WAAA,KAAA;;AAGF,CAbA,aAaA,CARA,iBAQA;AACE,cAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;AAGF,CAjBA,aAiBA,CAAA;AACE,cAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;AACA,SAAA;AACA,cAAA,MAAA,EAAA,EAAA,EAAA,IAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;AAGF,CAvBA,aAuBA,CAAA;AACE,qBAAA;AACA,SAAA;;",
+  "names": []
+}

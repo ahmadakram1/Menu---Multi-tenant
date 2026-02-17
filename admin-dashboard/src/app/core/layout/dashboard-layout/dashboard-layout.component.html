@@ -1,8 +1,14 @@
-<mat-sidenav-container class="dashboard-container">
+<mat-sidenav-container
+  #sidenavContainer
+  class="dashboard-container"
+  autosize
+  [dir]="languageService.language === 'ar' ? 'rtl' : 'ltr'"
+>
   <mat-sidenav
     #drawer
     [mode]="(isHandset$ | async) ? 'over' : 'side'"
     [opened]="!(isHandset$ | async)"
+    [position]="languageService.language === 'ar' ? 'end' : 'start'"
   >
     <app-sidebar></app-sidebar>
   </mat-sidenav>

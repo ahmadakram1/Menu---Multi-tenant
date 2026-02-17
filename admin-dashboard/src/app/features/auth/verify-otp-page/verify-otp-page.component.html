@@ -1,0 +1,31 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <div class="login-header">
+      <div>
+        <h1>{{ 'OTP.TITLE' | t }}</h1>
+        <p>{{ 'OTP.SUBTITLE' | t }}</p>
+      </div>
+      <button mat-stroked-button type="button" class="lang-toggle" (click)="toggleLanguage()">
+        {{ languageService.language === 'ar' ? 'EN' : 'AR' }}
+      </button>
+    </div>
+    <mat-card-content>
+      <form (ngSubmit)="submit()" class="login-form">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'OTP.EMAIL' | t }}</mat-label>
+          <input matInput type="email" name="email" [(ngModel)]="email" required />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'OTP.CODE' | t }}</mat-label>
+          <input matInput name="otp" [(ngModel)]="otp" required />
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="submit" class="login-submit">
+          {{ 'OTP.SUBMIT' | t }}
+        </button>
+        <button mat-button type="button" class="register-link" routerLink="/login">
+          {{ 'OTP.BACK_TO_LOGIN' | t }}
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

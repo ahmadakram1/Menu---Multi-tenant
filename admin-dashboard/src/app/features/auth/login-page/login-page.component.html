@@ -1,33 +1,61 @@
 <div class="login-page">
-  <mat-card class="login-card">
-    <div class="login-header">
-      <div>
-        <h1>{{ 'LOGIN.TITLE' | t }}</h1>
-        <p>{{ 'LOGIN.SUBTITLE' | t }}</p>
-      </div>
-      <button mat-stroked-button type="button" class="lang-toggle" (click)="toggleLanguage()">
-        {{ languageService.language === 'ar' ? 'EN' : 'AR' }}
-      </button>
-    </div>
-    <mat-card-content>
-      <form (ngSubmit)="submit()" class="login-form">
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'LOGIN.EMAIL' | t }}</mat-label>
-          <input matInput type="email" name="email" [(ngModel)]="email" required />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'LOGIN.PASSWORD' | t }}</mat-label>
-          <input matInput type="password" name="password" [(ngModel)]="password" required />
-        </mat-form-field>
-        <div class="login-row">
-          <mat-checkbox name="remember" [(ngModel)]="rememberMe">
-            {{ 'LOGIN.REMEMBER' | t }}
-          </mat-checkbox>
+  <div class="login-shell">
+    <section class="login-hero">
+      <p class="hero-kicker">{{ 'LOGIN.KICKER' | t }}</p>
+      <h2>{{ 'LOGIN.HERO_TITLE' | t }}</h2>
+      <p class="hero-subtitle">{{ 'LOGIN.HERO_SUBTITLE' | t }}</p>
+      <div class="hero-points">
+        <div class="hero-point">
+          <mat-icon>verified_user</mat-icon>
+          <span>{{ 'LOGIN.POINT1' | t }}</span>
         </div>
-        <button mat-raised-button color="primary" type="submit" class="login-submit">
-          {{ 'LOGIN.SUBMIT' | t }}
+        <div class="hero-point">
+          <mat-icon>speed</mat-icon>
+          <span>{{ 'LOGIN.POINT2' | t }}</span>
+        </div>
+        <div class="hero-point">
+          <mat-icon>support_agent</mat-icon>
+          <span>{{ 'LOGIN.POINT3' | t }}</span>
+        </div>
+      </div>
+    </section>
+
+    <mat-card class="login-card">
+      <div class="login-header">
+        <div>
+          <h1>{{ 'LOGIN.TITLE' | t }}</h1>
+          <p>{{ 'LOGIN.SUBTITLE' | t }}</p>
+        </div>
+        <button mat-stroked-button type="button" class="lang-toggle" (click)="toggleLanguage()">
+          {{ languageService.language === 'ar' ? 'EN' : 'AR' }}
         </button>
-      </form>
-    </mat-card-content>
-  </mat-card>
+      </div>
+      <mat-card-content>
+        <form (ngSubmit)="submit()" class="login-form">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'LOGIN.EMAIL' | t }}</mat-label>
+            <input matInput type="email" name="email" [(ngModel)]="email" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'LOGIN.PASSWORD' | t }}</mat-label>
+            <input matInput type="password" name="password" [(ngModel)]="password" required />
+          </mat-form-field>
+          <div class="login-row">
+            <mat-checkbox name="remember" [(ngModel)]="rememberMe">
+              {{ 'LOGIN.REMEMBER' | t }}
+            </mat-checkbox>
+            <button mat-button type="button" class="forgot-link" (click)="openResetPasswordDialog()">
+              {{ 'LOGIN.FORGOT_PASSWORD' | t }}
+            </button>
+          </div>
+          <button mat-raised-button color="primary" type="submit" class="login-submit">
+            {{ 'LOGIN.SUBMIT' | t }}
+          </button>
+          <button mat-button type="button" class="register-link" routerLink="/register">
+            {{ 'LOGIN.REGISTER' | t }}
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
 </div>

@@ -13,19 +13,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $config = require __DIR__ . '/../config.php';
-require_auth($config);
+$payload = require_auth($config);
+$isAdmin = is_admin($payload);
+$ownerRestaurantId = isset($payload['restaurant_id']) ? (int) $payload['restaurant_id'] : null;
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+function resolve_restaurant_id(array $payload, bool $isAdmin): ?int {
+    if (!$isAdmin) {
+        return isset($payload['restaurant_id']) ? (int) $payload['restaurant_id'] : null;
+    }
+    $queryRestaurantId = isset($_GET['restaurant_id']) ? (int) $_GET['restaurant_id'] : 0;
+    if ($queryRestaurantId > 0) {
+        return $queryRestaurantId;
+    }
+    return null;
+}
+
 if ($method === 'GET') {
-    $stmt = $pdo->query('SELECT * FROM categories');
-    respond($stmt->fetchAll());
+    $restaurantId = resolve_restaurant_id($payload, $isAdmin);
+    if ($restaurantId) {
+        $stmt = $pdo->prepare('SELECT * FROM categories WHERE restaurant_id = ?');
+        $stmt->execute([$restaurantId]);
+        respond($stmt->fetchAll());
+    }
+    if ($isAdmin) {
+        $stmt = $pdo->query('SELECT * FROM categories');
+        respond($stmt->fetchAll());
+    }
+    respond(['error' => 'Restaurant scope missing'], 403);
 }
 
 if ($method === 'POST') {
     $input = $_POST ?: json_input();
     $isUpdate = isset($input['_method']) && strtoupper($input['_method']) === 'PUT';
-    $image = save_upload($_FILES['image'] ?? null, $config['uploads_dir']);
+    $restaurantId = $isAdmin
+        ? ((int) ($input['restaurant_id'] ?? 0) ?: resolve_restaurant_id($payload, $isAdmin))
+        : $ownerRestaurantId;
+
+    if (!$restaurantId) {
+        respond(['error' => 'Missing restaurant_id'], 422);
+    }
+    $image = save_upload(
+        $_FILES['image'] ?? null,
+        $config['uploads_dir'],
+        'restaurant_' . (int) $restaurantId . '/categories'
+    );
 
     if ($isUpdate) {
         $id = $input['id'] ?? null;
@@ -33,30 +66,47 @@ if ($method === 'POST') {
             respond(['error' => 'Missing id'], 400);
         }
         if ($image) {
-            $stmt = $pdo->prepare('UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=?, image=? WHERE id=?');
-            $stmt->execute([
+            $sql = 'UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=?, image=? WHERE id=?';
+            if (!$isAdmin) {
+                $sql .= ' AND restaurant_id=?';
+            }
+            $stmt = $pdo->prepare($sql);
+            $params = [
                 $input['name_ar'] ?? '',
                 $input['name_en'] ?? '',
                 $input['description_ar'] ?? '',
                 $input['description_en'] ?? '',
                 $image,
                 $id
-            ]);
+            ];
+            if (!$isAdmin) {
+                $params[] = $restaurantId;
+            }
+            $stmt->execute($params);
         } else {
-            $stmt = $pdo->prepare('UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=? WHERE id=?');
-            $stmt->execute([
+            $sql = 'UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=? WHERE id=?';
+            if (!$isAdmin) {
+                $sql .= ' AND restaurant_id=?';
+            }
+            $stmt = $pdo->prepare($sql);
+            $params = [
                 $input['name_ar'] ?? '',
                 $input['name_en'] ?? '',
                 $input['description_ar'] ?? '',
                 $input['description_en'] ?? '',
                 $id
-            ]);
+            ];
+            if (!$isAdmin) {
+                $params[] = $restaurantId;
+            }
+            $stmt->execute($params);
         }
         respond(['success' => true]);
     }
 
-    $stmt = $pdo->prepare('INSERT INTO categories (name_ar, name_en, description_ar, description_en, image) VALUES (?, ?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO categories (restaurant_id, name_ar, name_en, description_ar, description_en, image) VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([
+        $restaurantId,
         $input['name_ar'] ?? '',
         $input['name_en'] ?? '',
         $input['description_ar'] ?? '',
@@ -72,14 +122,20 @@ if ($method === 'PUT') {
     if (!$id) {
         respond(['error' => 'Missing id'], 400);
     }
-    $stmt = $pdo->prepare('UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=? WHERE id=?');
-    $stmt->execute([
+    $sql = 'UPDATE categories SET name_ar=?, name_en=?, description_ar=?, description_en=? WHERE id=?';
+    $params = [
         $input['name_ar'] ?? '',
         $input['name_en'] ?? '',
         $input['description_ar'] ?? '',
         $input['description_en'] ?? '',
         $id
-    ]);
+    ];
+    if (!$isAdmin && $ownerRestaurantId) {
+        $sql .= ' AND restaurant_id=?';
+        $params[] = $ownerRestaurantId;
+    }
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     respond(['success' => true]);
 }
 
@@ -89,8 +145,13 @@ if ($method === 'DELETE') {
     if (!$id) {
         respond(['error' => 'Missing id'], 400);
     }
-    $stmt = $pdo->prepare('DELETE FROM categories WHERE id=?');
-    $stmt->execute([$id]);
+    if ($isAdmin) {
+        $stmt = $pdo->prepare('DELETE FROM categories WHERE id=?');
+        $stmt->execute([$id]);
+    } else {
+        $stmt = $pdo->prepare('DELETE FROM categories WHERE id=? AND restaurant_id=?');
+        $stmt->execute([$id, $ownerRestaurantId]);
+    }
     respond(['success' => true]);
 }
 

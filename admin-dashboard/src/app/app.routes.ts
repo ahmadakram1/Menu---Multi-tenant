@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CanActivateFn, Routes, Router } from '@angular/router';
@@ -17,20 +17,45 @@ import { timeout } from 'rxjs';
 import { DashboardLayoutComponent } from './core/layout/dashboard-layout/dashboard-layout.component';
 import { LanguageService, TranslatePipe } from './core/i18n/language.service';
 import { API_BASE } from './core/api';
+import { getAuthUser, getStoredToken } from './features/auth/auth-session';
 import { authRoutes } from './features/auth/auth.routes';
 
 const authGuard: CanActivateFn = () => {
   const router = inject(Router);
-  try {
-    const token =
-      localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    if (token) {
-      return true;
-    }
-  } catch {
-    // Ignore storage errors and treat as unauthenticated.
+  const token = getStoredToken();
+  if (token) {
+    return true;
   }
   return router.parseUrl('/login');
+};
+
+const adminGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const token = getStoredToken();
+  const user = getAuthUser();
+  if (token && user?.role === 'admin') {
+    return true;
+  }
+  return router.parseUrl('/admin/settings');
+};
+
+const ownerGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const token = getStoredToken();
+  const user = getAuthUser();
+  if (token && user?.role === 'owner') {
+    return true;
+  }
+  return router.parseUrl('/admin/approvals');
+};
+
+const dashboardDefaultGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const user = getAuthUser();
+  if (user?.role === 'admin') {
+    return router.parseUrl('/admin/approvals');
+  }
+  return router.parseUrl('/admin/settings');
 };
 
 const storage = {
@@ -55,13 +80,8 @@ const storage = {
 };
 
 function authHeaders(): HttpHeaders {
-  try {
-    const token =
-      localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
-  } catch {
-    return new HttpHeaders();
-  }
+  const token = getStoredToken();
+  return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
 }
 
 function imageUrl(filename?: string | null): string {
@@ -72,6 +92,10 @@ interface RestaurantSettings {
   id?: number;
   name_ar: string;
   name_en: string;
+  menu_slug?: string;
+  menu_enabled?: number;
+  access_start_at?: string | null;
+  access_end_at?: string | null;
   logo: string;
   phone: string;
   whatsapp: string;
@@ -87,6 +111,8 @@ interface RestaurantSettings {
   logo_preview?: string;
   logo_file?: File | null;
 }
+
+type ThemePresetKey = 'classic' | 'coffee' | 'modern';
 
 interface Category {
   id: number;
@@ -134,6 +160,7 @@ class DashboardHomeComponent {}
   standalone: true,
   imports: [
     TranslatePipe,
+    FormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -152,6 +179,11 @@ class DashboardHomeComponent {}
           <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
         </div>
         <form class="form-grid" (ngSubmit)="save()" *ngIf="!loading">
+          <div class="form-actions">
+            <a mat-stroked-button color="primary" [href]="menuLink" target="_blank" rel="noopener">
+              Open public menu
+            </a>
+          </div>
           <mat-form-field appearance="outline">
             <mat-label>{{ 'SETTINGS.NAME_AR' | t }}</mat-label>
             <input matInput name="name_ar" [(ngModel)]="model.name_ar" />
@@ -186,50 +218,62 @@ class DashboardHomeComponent {}
             <input matInput name="instagram" [(ngModel)]="model.instagram" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.FONT' | t }}</mat-label>
-            <mat-select name="font_family" [(ngModel)]="model.font_family">
-              <mat-option [value]="''">{{ 'SETTINGS.FONT_DEFAULT' | t }}</mat-option>
-              <mat-option *ngFor="let font of fonts" [value]="font.value">
-                {{ font.label }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_BG' | t }}</mat-label>
-            <input matInput type="color" name="theme_bg" [(ngModel)]="model.theme_bg" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_CARD' | t }}</mat-label>
-            <input matInput type="color" name="theme_card" [(ngModel)]="model.theme_card" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_TEXT' | t }}</mat-label>
-            <input matInput type="color" name="theme_text" [(ngModel)]="model.theme_text" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_MUTED' | t }}</mat-label>
-            <input matInput type="color" name="theme_muted" [(ngModel)]="model.theme_muted" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_ACCENT' | t }}</mat-label>
-            <input matInput type="color" name="theme_accent" [(ngModel)]="model.theme_accent" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_ACCENT2' | t }}</mat-label>
-            <input matInput type="color" name="theme_accent2" [(ngModel)]="model.theme_accent2" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'SETTINGS.THEME_BORDER' | t }}</mat-label>
-            <input matInput type="color" name="theme_border" [(ngModel)]="model.theme_border" />
-          </mat-form-field>
+          <div class="theme-presets">
+            <div class="theme-presets-title">{{ 'SETTINGS.THEME_PRESETS' | t }}</div>
+            <div class="theme-presets-actions">
+              <button
+                mat-stroked-button
+                type="button"
+                [class.active-filter]="currentPreset === 'classic'"
+                (click)="applyThemePreset('classic')"
+              >
+                {{ 'SETTINGS.PRESET_CLASSIC' | t }}
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                [class.active-filter]="currentPreset === 'coffee'"
+                (click)="applyThemePreset('coffee')"
+              >
+                {{ 'SETTINGS.PRESET_COFFEE' | t }}
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                [class.active-filter]="currentPreset === 'modern'"
+                (click)="applyThemePreset('modern')"
+              >
+                {{ 'SETTINGS.PRESET_MODERN' | t }}
+              </button>
+            </div>
+            <div class="theme-preview-title">{{ 'SETTINGS.THEME_PREVIEW' | t }}</div>
+            <div
+              class="theme-preview-card"
+              [style.background]="model.theme_bg || '#f5f6f8'"
+              [style.border-color]="model.theme_border || '#e5e7eb'"
+            >
+              <div
+                class="theme-preview-inner"
+                [style.background]="model.theme_card || '#ffffff'"
+                [style.border-color]="model.theme_border || '#e5e7eb'"
+              >
+                <div class="theme-preview-head">
+                  <div class="theme-preview-dot" [style.background]="model.theme_accent || '#0f766e'"></div>
+                  <div class="theme-preview-title-text" [style.color]="model.theme_text || '#1f2937'">
+                    Menu Preview
+                  </div>
+                </div>
+                <div class="theme-preview-line" [style.background]="model.theme_muted || '#6b7280'"></div>
+                <button
+                  type="button"
+                  class="theme-preview-button"
+                  [style.background]="model.theme_accent || '#0f766e'"
+                >
+                  Accent
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div class="form-actions">
             <button mat-raised-button color="primary" type="submit">
@@ -270,9 +314,74 @@ class RestaurantSettingsComponent implements OnInit {
     logo_preview: '',
     logo_file: null
   };
+  private readonly themePresets: Record<
+    ThemePresetKey,
+    {
+      theme_bg: string;
+      theme_card: string;
+      theme_text: string;
+      theme_muted: string;
+      theme_accent: string;
+      theme_accent2: string;
+      theme_border: string;
+    }
+  > = {
+    classic: {
+      theme_bg: '#f5f6f8',
+      theme_card: '#ffffff',
+      theme_text: '#1f2937',
+      theme_muted: '#6b7280',
+      theme_accent: '#0f766e',
+      theme_accent2: '#14b8a6',
+      theme_border: '#e5e7eb'
+    },
+    coffee: {
+      theme_bg: '#f7f3ed',
+      theme_card: '#fffdf9',
+      theme_text: '#3a2b20',
+      theme_muted: '#7d6b5d',
+      theme_accent: '#8b5e3c',
+      theme_accent2: '#b07c4f',
+      theme_border: '#e6d8c8'
+    },
+    modern: {
+      theme_bg: '#eef2ff',
+      theme_card: '#ffffff',
+      theme_text: '#111827',
+      theme_muted: '#64748b',
+      theme_accent: '#2563eb',
+      theme_accent2: '#06b6d4',
+      theme_border: '#dbeafe'
+    }
+  };
 
   ngOnInit(): void {
     this.fetch();
+  }
+
+  get menuLink(): string {
+    const slug = (this.model.menu_slug || '').trim();
+    return slug ? `http://localhost/Menu/${slug}` : 'http://localhost/StoreMenu/public-menu/index.html';
+  }
+
+  get currentPreset(): ThemePresetKey | null {
+    const entries = Object.entries(this.themePresets) as Array<
+      [ThemePresetKey, (typeof this.themePresets)[ThemePresetKey]]
+    >;
+    for (const [key, preset] of entries) {
+      if (
+        this.model.theme_bg === preset.theme_bg &&
+        this.model.theme_card === preset.theme_card &&
+        this.model.theme_text === preset.theme_text &&
+        this.model.theme_muted === preset.theme_muted &&
+        this.model.theme_accent === preset.theme_accent &&
+        this.model.theme_accent2 === preset.theme_accent2 &&
+        this.model.theme_border === preset.theme_border
+      ) {
+        return key;
+      }
+    }
+    return null;
   }
 
   private fetch(): void {
@@ -428,11 +537,49 @@ class RestaurantSettingsComponent implements OnInit {
     };
     reader.readAsDataURL(file);
   }
+
+  applyThemePreset(preset: ThemePresetKey): void {
+    this.model = {
+      ...this.model,
+      ...this.themePresets[preset]
+    };
+  }
 }
 
 interface CategoryDialogData {
   mode: 'create' | 'edit';
   category: Category;
+}
+
+interface ConfirmDialogData {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+}
+
+@Component({
+  selector: 'app-confirm-action-dialog',
+  standalone: true,
+  imports: [MatDialogModule, MatButtonModule],
+  template: `
+    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <div mat-dialog-content>{{ data.message }}</div>
+    <div mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="close(false)">{{ data.cancelLabel }}</button>
+      <button mat-raised-button color="primary" type="button" (click)="close(true)">
+        {{ data.confirmLabel }}
+      </button>
+    </div>
+  `
+})
+class ConfirmActionDialogComponent {
+  readonly data = inject(MAT_DIALOG_DATA) as ConfirmDialogData;
+  private readonly dialogRef = inject(MatDialogRef<ConfirmActionDialogComponent>);
+
+  close(confirmed: boolean): void {
+    this.dialogRef.close(confirmed);
+  }
 }
 
 @Component({
@@ -519,6 +666,7 @@ class CategoryDialogComponent {
   standalone: true,
   imports: [
     TranslatePipe,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -833,6 +981,7 @@ class ItemDialogComponent {
   standalone: true,
   imports: [
     TranslatePipe,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -851,12 +1000,35 @@ class ItemDialogComponent {
       </button>
     </div>
 
+    <div class="page-toolbar" *ngIf="!loading">
+      <div>
+        <button mat-stroked-button type="button" (click)="setCategoryFilter(null)">
+          {{ 'ITEMS.ALL_CATEGORIES' | t }}
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          *ngFor="let category of categories"
+          (click)="setCategoryFilter(category.id)"
+        >
+          {{ category.name_ar }} / {{ category.name_en }}
+        </button>
+      </div>
+      <div>
+        <button mat-button type="button" (click)="prevPage()" [disabled]="page === 1">Prev</button>
+        <span>{{ page }} / {{ totalPages }}</span>
+        <button mat-button type="button" (click)="nextPage()" [disabled]="page >= totalPages">
+          Next
+        </button>
+      </div>
+    </div>
+
     <div class="loading-center" *ngIf="loading">
       <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
     </div>
 
     <div class="card-grid" *ngIf="!loading">
-      <mat-card class="card-item" *ngFor="let item of items">
+      <mat-card class="card-item" *ngFor="let item of pagedItems">
         <div class="card-item-header">
           <div>
             <div class="card-item-title">{{ item.name_ar }} / {{ item.name_en }}</div>
@@ -892,6 +1064,9 @@ class ItemsComponent implements OnInit {
   loading = false;
   items: Item[] = [];
   categories: Category[] = [];
+  selectedCategoryId: number | null = null;
+  page = 1;
+  readonly pageSize = 8;
 
   ngOnInit(): void {
     this.fetchCategories();
@@ -926,6 +1101,7 @@ class ItemsComponent implements OnInit {
             image_preview: imageUrl(item.image),
             image_file: null
           }));
+          this.page = 1;
           storage.set('items', this.items.map((item) => ({
             id: item.id,
             category_id: item.category_id,
@@ -953,6 +1129,40 @@ class ItemsComponent implements OnInit {
       }
       this.saveItem(result, 'create');
     });
+  }
+
+  setCategoryFilter(categoryId: number | null): void {
+    this.selectedCategoryId = categoryId;
+    this.page = 1;
+  }
+
+  get filteredItems(): Item[] {
+    if (!this.selectedCategoryId) {
+      return this.items;
+    }
+    return this.items.filter((item) => item.category_id === this.selectedCategoryId);
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.filteredItems.length / this.pageSize);
+    return total > 0 ? total : 1;
+  }
+
+  get pagedItems(): Item[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.filteredItems.slice(start, start + this.pageSize);
+  }
+
+  nextPage(): void {
+    if (this.page < this.totalPages) {
+      this.page += 1;
+    }
+  }
+
+  prevPage(): void {
+    if (this.page > 1) {
+      this.page -= 1;
+    }
   }
 
   openEdit(item: Item): void {
@@ -1077,6 +1287,708 @@ class ItemsComponent implements OnInit {
   }
 }
 
+interface RegistrationRequest {
+  id: number;
+  restaurant_id: number;
+  email: string;
+  phone: string;
+  status: string;
+  email_verified_at: string | null;
+  created_at: string;
+  name_ar: string;
+  name_en: string;
+  menu_slug: string;
+  menu_enabled: number;
+  access_start_at: string | null;
+  access_end_at: string | null;
+  access_start_input?: string;
+  access_end_input?: string;
+  menu_enabled_bool?: boolean;
+  edit_email?: string;
+  edit_password?: string;
+  email_template?: 'bilingual' | 'ar' | 'en';
+}
+
+@Component({
+  selector: 'app-registrations-approvals',
+  standalone: true,
+  imports: [
+    TranslatePipe,
+    FormsModule,
+    MatCardModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    NgClass,
+    NgFor,
+    NgIf
+  ],
+  template: `
+    <div class="admin-page-shell">
+      <div class="page-toolbar">
+        <div>
+          <h2>{{ 'APPROVALS.TITLE' | t }}</h2>
+          <p class="page-subtitle">{{ 'APPROVALS.SUBTITLE' | t }}</p>
+        </div>
+      </div>
+
+      <div class="approval-stats" *ngIf="!loading">
+        <mat-card class="approval-stat-card">
+          <div class="approval-stat-label">{{ 'APPROVALS.REGISTERED_COUNT' | t }}</div>
+          <div class="approval-stat-value">{{ totalCount }}</div>
+        </mat-card>
+        <mat-card class="approval-stat-card">
+          <div class="approval-stat-label">{{ 'APPROVALS.APPROVED_COUNT' | t }}</div>
+          <div class="approval-stat-value">{{ approvedCount }}</div>
+        </mat-card>
+        <mat-card class="approval-stat-card">
+          <div class="approval-stat-label">{{ 'APPROVALS.PENDING' | t }}</div>
+          <div class="approval-stat-value">{{ pendingCount }}</div>
+        </mat-card>
+        <mat-card class="approval-stat-card">
+          <div class="approval-stat-label">{{ 'APPROVALS.REJECTED' | t }}</div>
+          <div class="approval-stat-value">{{ rejectedCount }}</div>
+        </mat-card>
+      </div>
+
+      <div class="approval-filters" *ngIf="!loading">
+        <button mat-stroked-button type="button" [class.active-filter]="statusFilter === 'all'" (click)="setFilter('all')">
+          {{ 'APPROVALS.ALL' | t }}
+        </button>
+        <button mat-stroked-button type="button" [class.active-filter]="statusFilter === 'pending_approval'" (click)="setFilter('pending_approval')">
+          {{ 'APPROVALS.PENDING' | t }}
+        </button>
+        <button mat-stroked-button type="button" [class.active-filter]="statusFilter === 'approved'" (click)="setFilter('approved')">
+          {{ 'APPROVALS.APPROVED' | t }}
+        </button>
+        <button mat-stroked-button type="button" [class.active-filter]="statusFilter === 'rejected'" (click)="setFilter('rejected')">
+          {{ 'APPROVALS.REJECTED' | t }}
+        </button>
+      </div>
+
+      <div class="loading-center" *ngIf="loading">
+        <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+      </div>
+
+      <div class="approvals-grid" *ngIf="!loading">
+        <mat-card class="approval-card" *ngFor="let row of filteredRequests">
+          <mat-card-content class="approval-body">
+            <div class="approval-header">
+              <div>
+                <div class="approval-title">{{ row.name_ar }} / {{ row.name_en }}</div>
+                <div class="approval-subtitle">{{ row.email }} - {{ row.phone }}</div>
+              </div>
+              <div class="approval-status" [ngClass]="statusClass(row.status)">
+                {{ statusText(row.status) }}
+              </div>
+            </div>
+
+            <div class="approval-link-row">
+              <span>{{ 'APPROVALS.MENU_LINK' | t }}:</span>
+              <a [href]="'http://localhost/Menu/' + row.menu_slug" target="_blank" rel="noopener">
+                http://localhost/Menu/{{ row.menu_slug }}
+              </a>
+            </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'APPROVALS.EMAIL_TEMPLATE' | t }}</mat-label>
+              <mat-select [(ngModel)]="row.email_template" [ngModelOptions]="{ standalone: true }">
+                <mat-option value="bilingual">{{ 'APPROVALS.EMAIL_TEMPLATE_BILINGUAL' | t }}</mat-option>
+                <mat-option value="ar">{{ 'APPROVALS.EMAIL_TEMPLATE_AR' | t }}</mat-option>
+                <mat-option value="en">{{ 'APPROVALS.EMAIL_TEMPLATE_EN' | t }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </mat-card-content>
+
+          <mat-card-actions class="approval-actions">
+            <button mat-raised-button color="primary" type="button" (click)="updateStatus(row, 'approved')">
+              {{ 'APPROVALS.APPROVE' | t }}
+            </button>
+            <button mat-stroked-button color="warn" type="button" (click)="updateStatus(row, 'rejected')">
+              {{ 'APPROVALS.REJECT' | t }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  `
+})
+class RegistrationsApprovalsComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly language = inject(LanguageService);
+  loading = false;
+  requests: RegistrationRequest[] = [];
+  statusFilter: 'all' | 'pending_approval' | 'approved' | 'rejected' = 'all';
+
+  ngOnInit(): void {
+    this.fetch();
+  }
+
+  private fetch(): void {
+    this.loading = true;
+    this.http
+      .get<RegistrationRequest[]>(`${API_BASE}/admin/registrations.php`, { headers: authHeaders() })
+      .subscribe({
+        next: (data) => {
+          this.requests = data.map((row) => ({
+            ...row,
+            email_template: 'bilingual'
+          }));
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+        }
+      });
+  }
+
+  updateStatus(row: RegistrationRequest, status: 'approved' | 'rejected'): void {
+    const payload: Record<string, unknown> = {
+      account_id: row.id,
+      status,
+      email_template: row.email_template || 'bilingual'
+    };
+
+    this.http
+      .post(
+        `${API_BASE}/admin/registrations.php`,
+        payload,
+        { headers: authHeaders() }
+      )
+      .subscribe({
+        next: (response) => {
+          const emailSent = (response as { email_sent?: boolean | null })?.email_sent;
+          const message = emailSent === false
+            ? this.language.translate('APPROVALS.SAVED_WITH_EMAIL_WARNING')
+            : this.language.translate('APPROVALS.SAVED_WITH_EMAIL');
+          this.snackBar.open(message, undefined, { duration: 2600 });
+          this.fetch();
+        },
+        error: () => {
+          this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+        }
+      });
+  }
+
+  setFilter(filter: 'all' | 'pending_approval' | 'approved' | 'rejected'): void {
+    this.statusFilter = filter;
+  }
+
+  get filteredRequests(): RegistrationRequest[] {
+    if (this.statusFilter === 'all') {
+      return this.requests;
+    }
+    return this.requests.filter((row) => row.status === this.statusFilter);
+  }
+
+  get totalCount(): number {
+    return this.requests.length;
+  }
+
+  get approvedCount(): number {
+    return this.requests.filter((row) => row.status === 'approved').length;
+  }
+
+  get pendingCount(): number {
+    return this.requests.filter((row) => row.status === 'pending_approval').length;
+  }
+
+  get rejectedCount(): number {
+    return this.requests.filter((row) => row.status === 'rejected').length;
+  }
+
+  get approvalRate(): number {
+    return this.totalCount ? (this.approvedCount / this.totalCount) * 100 : 0;
+  }
+
+  get pendingRate(): number {
+    return this.totalCount ? (this.pendingCount / this.totalCount) * 100 : 0;
+  }
+
+  statusText(status: string): string {
+    if (status === 'approved') {
+      return this.language.translate('APPROVALS.APPROVED');
+    }
+    if (status === 'rejected') {
+      return this.language.translate('APPROVALS.REJECTED');
+    }
+    return this.language.translate('APPROVALS.PENDING');
+  }
+
+  statusClass(status: string): string {
+    if (status === 'approved') {
+      return 'approval-status-approved';
+    }
+    if (status === 'rejected') {
+      return 'approval-status-rejected';
+    }
+    return 'approval-status-pending';
+  }
+}
+
+@Component({
+  selector: 'app-admin-menu-access',
+  standalone: true,
+  imports: [
+    TranslatePipe,
+    FormsModule,
+    MatCardModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    NgClass,
+    NgFor,
+    NgIf
+  ],
+  template: `
+    <div class="admin-page-shell">
+      <div class="page-toolbar">
+        <div>
+          <h2>{{ 'MENU_ACCESS.TITLE' | t }}</h2>
+          <p class="page-subtitle">{{ 'MENU_ACCESS.SUBTITLE' | t }}</p>
+        </div>
+      </div>
+
+      <div class="loading-center" *ngIf="loading">
+        <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+      </div>
+
+      <div class="approvals-grid" *ngIf="!loading">
+        <mat-card class="approval-card" *ngFor="let row of requests">
+          <mat-card-content class="approval-body">
+            <div class="approval-header">
+              <div>
+                <div class="approval-title">{{ row.name_ar }} / {{ row.name_en }}</div>
+                <div class="approval-subtitle">{{ row.email }}</div>
+              </div>
+              <div class="approval-status" [ngClass]="statusClass(row.status)">
+                {{ statusText(row.status) }}
+              </div>
+            </div>
+
+            <div class="approval-link-row">
+              <span>{{ 'APPROVALS.MENU_LINK' | t }}:</span>
+              <a [href]="'http://localhost/Menu/' + row.menu_slug" target="_blank" rel="noopener">
+                http://localhost/Menu/{{ row.menu_slug }}
+              </a>
+            </div>
+
+            <div class="approval-access-grid">
+              <label>
+                <span>{{ 'APPROVALS.START_DATE' | t }}</span>
+                <input
+                  class="approval-input"
+                  type="month"
+                  [value]="row.access_start_input || ''"
+                  (input)="row.access_start_input = textValue($event)"
+                />
+              </label>
+
+              <label>
+                <span>{{ 'APPROVALS.END_DATE' | t }}</span>
+                <input
+                  class="approval-input"
+                  type="month"
+                  [value]="row.access_end_input || ''"
+                  (input)="row.access_end_input = textValue($event)"
+                />
+              </label>
+            </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'APPROVALS.EMAIL_TEMPLATE' | t }}</mat-label>
+              <mat-select [(ngModel)]="row.email_template" [ngModelOptions]="{ standalone: true }">
+                <mat-option value="bilingual">{{ 'APPROVALS.EMAIL_TEMPLATE_BILINGUAL' | t }}</mat-option>
+                <mat-option value="ar">{{ 'APPROVALS.EMAIL_TEMPLATE_AR' | t }}</mat-option>
+                <mat-option value="en">{{ 'APPROVALS.EMAIL_TEMPLATE_EN' | t }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </mat-card-content>
+
+          <mat-card-actions class="approval-actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              [class.active-filter]="row.menu_enabled_bool"
+              (click)="toggleMenuEnabled(row)"
+            >
+              {{
+                row.menu_enabled_bool
+                  ? ('APPROVALS.MENU_DISABLE' | t)
+                  : ('APPROVALS.MENU_ENABLE' | t)
+              }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  `
+})
+class AdminMenuAccessComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly language = inject(LanguageService);
+  loading = false;
+  requests: RegistrationRequest[] = [];
+
+  ngOnInit(): void {
+    this.fetch();
+  }
+
+  private fetch(): void {
+    this.loading = true;
+    this.http
+      .get<RegistrationRequest[]>(`${API_BASE}/admin/registrations.php`, { headers: authHeaders() })
+      .subscribe({
+        next: (data) => {
+          this.requests = data.map((row) => ({
+            ...row,
+            menu_enabled_bool: Number(row.menu_enabled) === 1,
+            access_start_input: this.toInputMonth(row.access_start_at),
+            access_end_input: this.toInputMonth(row.access_end_at),
+            email_template: 'bilingual'
+          }));
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+        }
+      });
+  }
+
+  toggleMenuEnabled(row: RegistrationRequest): void {
+    const nextEnabled = !row.menu_enabled_bool;
+    const dialogRef = this.dialog.open(ConfirmActionDialogComponent, {
+      data: {
+        title: this.language.translate('MENU_ACCESS.CONFIRM_TITLE'),
+        message: nextEnabled
+          ? this.language.translate('MENU_ACCESS.CONFIRM_ENABLE')
+          : this.language.translate('MENU_ACCESS.CONFIRM_DISABLE'),
+        confirmLabel: this.language.translate('MENU_ACCESS.CONFIRM_ACTION'),
+        cancelLabel: this.language.translate('COMMON.CANCEL')
+      } as ConfirmDialogData
+    });
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
+      this.http
+        .post(
+          `${API_BASE}/admin/registrations.php`,
+          {
+            account_id: row.id,
+            menu_enabled: nextEnabled,
+            email_template: row.email_template || 'bilingual',
+            notify_menu_email: true,
+            access_start_at: this.fromInputMonthStart(row.access_start_input),
+            access_end_at: this.fromInputMonthEnd(row.access_end_input)
+          },
+          { headers: authHeaders() }
+        )
+        .subscribe({
+          next: () => {
+            row.menu_enabled_bool = nextEnabled;
+            this.snackBar.open(this.language.translate('APPROVALS.SAVED_WITH_EMAIL'), undefined, { duration: 2400 });
+          },
+          error: () => {
+            this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+          }
+        });
+    });
+  }
+
+  statusText(status: string): string {
+    if (status === 'approved') {
+      return this.language.translate('APPROVALS.APPROVED');
+    }
+    if (status === 'rejected') {
+      return this.language.translate('APPROVALS.REJECTED');
+    }
+    return this.language.translate('APPROVALS.PENDING');
+  }
+
+  statusClass(status: string): string {
+    if (status === 'approved') {
+      return 'approval-status-approved';
+    }
+    if (status === 'rejected') {
+      return 'approval-status-rejected';
+    }
+    return 'approval-status-pending';
+  }
+
+  private toInputMonth(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+    const date = new Date(value.replace(' ', 'T'));
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    const pad = (v: number) => String(v).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    return `${y}-${m}`;
+  }
+
+  private fromInputMonthStart(value: string | null | undefined): string | null {
+    if (!value || value.trim() === '') {
+      return null;
+    }
+    const [yearRaw, monthRaw] = value.split('-');
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    if (!year || !month) {
+      return null;
+    }
+    return `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+  }
+
+  private fromInputMonthEnd(value: string | null | undefined): string | null {
+    if (!value || value.trim() === '') {
+      return null;
+    }
+    const [yearRaw, monthRaw] = value.split('-');
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    if (!year || !month) {
+      return null;
+    }
+    const lastDay = new Date(year, month, 0).getDate();
+    return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')} 23:59:59`;
+  }
+
+  textValue(event: Event): string {
+    const target = event.target as HTMLInputElement | null;
+    return target?.value || '';
+  }
+}
+
+@Component({
+  selector: 'app-admin-access-control',
+  standalone: true,
+  imports: [TranslatePipe, FormsModule, MatCardModule, MatButtonModule, MatSnackBarModule, MatProgressSpinnerModule, NgClass, NgFor, NgIf],
+  template: `
+    <div class="admin-page-shell">
+      <div class="page-toolbar">
+        <div>
+          <h2>{{ 'ACCESS.TITLE' | t }}</h2>
+          <p class="page-subtitle">{{ 'ACCESS.SUBTITLE' | t }}</p>
+        </div>
+      </div>
+
+      <div class="loading-center" *ngIf="loading">
+        <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+      </div>
+
+      <div class="approvals-grid" *ngIf="!loading">
+        <mat-card class="approval-card" *ngFor="let row of requests">
+          <mat-card-content class="approval-body">
+            <div class="approval-header">
+              <div>
+                <div class="approval-title">{{ row.name_ar }} / {{ row.name_en }}</div>
+                <div class="approval-subtitle">{{ row.email }}</div>
+              </div>
+              <div class="approval-status" [ngClass]="statusClass(row.status)">
+                {{ statusText(row.status) }}
+              </div>
+            </div>
+
+            <div class="approval-credentials-grid">
+              <label>
+                <span>{{ 'APPROVALS.CLIENT_EMAIL' | t }}</span>
+                <input
+                  class="approval-input"
+                  type="email"
+                  [value]="row.edit_email || ''"
+                  (input)="row.edit_email = textValue($event)"
+                />
+              </label>
+              <label>
+                <span>{{ 'APPROVALS.CLIENT_PASSWORD' | t }}</span>
+                <input
+                  class="approval-input"
+                  type="password"
+                  [value]="row.edit_password || ''"
+                  (input)="row.edit_password = textValue($event)"
+                />
+              </label>
+              <div class="approval-credentials-action">
+                <button mat-stroked-button type="button" (click)="updateClientCredentials(row)">
+                  {{ 'APPROVALS.SAVE_CREDENTIALS' | t }}
+                </button>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  `
+})
+class AdminAccessControlComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly language = inject(LanguageService);
+  loading = false;
+  requests: RegistrationRequest[] = [];
+
+  ngOnInit(): void {
+    this.fetch();
+  }
+
+  private fetch(): void {
+    this.loading = true;
+    this.http
+      .get<RegistrationRequest[]>(`${API_BASE}/admin/registrations.php`, { headers: authHeaders() })
+      .subscribe({
+        next: (data) => {
+          this.requests = data.map((row) => ({
+            ...row,
+            edit_email: row.email,
+            edit_password: ''
+          }));
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+        }
+      });
+  }
+
+  statusText(status: string): string {
+    if (status === 'approved') {
+      return this.language.translate('APPROVALS.APPROVED');
+    }
+    if (status === 'rejected') {
+      return this.language.translate('APPROVALS.REJECTED');
+    }
+    return this.language.translate('APPROVALS.PENDING');
+  }
+
+  statusClass(status: string): string {
+    if (status === 'approved') {
+      return 'approval-status-approved';
+    }
+    if (status === 'rejected') {
+      return 'approval-status-rejected';
+    }
+    return 'approval-status-pending';
+  }
+
+  textValue(event: Event): string {
+    const target = event.target as HTMLInputElement | null;
+    return target?.value || '';
+  }
+
+  updateClientCredentials(row: RegistrationRequest): void {
+    this.http
+      .post(
+        `${API_BASE}/admin/credentials.php`,
+        {
+          target: 'merchant',
+          account_id: row.id,
+          email: (row.edit_email || '').trim(),
+          password: (row.edit_password || '').trim()
+        },
+        { headers: authHeaders() }
+      )
+      .subscribe({
+        next: () => {
+          row.email = (row.edit_email || row.email).trim();
+          row.edit_password = '';
+          this.snackBar.open(this.language.translate('COMMON.SAVED'), undefined, { duration: 2000 });
+        },
+        error: (error) => {
+          const message =
+            (error?.error?.error as string | undefined) || this.language.translate('COMMON.ERROR');
+          this.snackBar.open(message, undefined, { duration: 2500 });
+        }
+      });
+  }
+}
+
+@Component({
+  selector: 'app-admin-security',
+  standalone: true,
+  imports: [TranslatePipe, FormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatSnackBarModule, NgIf],
+  template: `
+    <mat-card class="page-card">
+      <mat-card-title>{{ 'SECURITY.TITLE' | t }}</mat-card-title>
+      <mat-card-content>
+        <form class="form-grid" (ngSubmit)="save()">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'SECURITY.ADMIN_EMAIL' | t }}</mat-label>
+            <input matInput name="email" [(ngModel)]="email" type="email" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'SECURITY.NEW_PASSWORD' | t }}</mat-label>
+            <input matInput name="password" [(ngModel)]="password" type="password" />
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit">{{ 'SECURITY.SAVE' | t }}</button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  `
+})
+class AdminSecurityComponent implements OnInit {
+  private readonly http = inject(HttpClient);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly language = inject(LanguageService);
+  email = '';
+  password = '';
+
+  ngOnInit(): void {
+    this.http
+      .get<{ admin: { email: string } }>(`${API_BASE}/admin/credentials.php`, { headers: authHeaders() })
+      .subscribe({
+        next: (data) => {
+          this.email = data.admin?.email || '';
+        },
+        error: () => {
+          this.snackBar.open(this.language.translate('COMMON.ERROR'), undefined, { duration: 2500 });
+        }
+      });
+  }
+
+  save(): void {
+    this.http
+      .post(
+        `${API_BASE}/admin/credentials.php`,
+        {
+          target: 'admin',
+          email: this.email.trim(),
+          password: this.password.trim()
+        },
+        { headers: authHeaders() }
+      )
+      .subscribe({
+        next: () => {
+          this.password = '';
+          this.snackBar.open(this.language.translate('COMMON.SAVED'), undefined, { duration: 2000 });
+        },
+        error: (error) => {
+          const message =
+            (error?.error?.error as string | undefined) || this.language.translate('COMMON.ERROR');
+          this.snackBar.open(message, undefined, { duration: 2500 });
+        }
+      });
+  }
+}
+
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   ...authRoutes,
@@ -1085,10 +1997,14 @@ export const routes: Routes = [
     component: DashboardLayoutComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'settings' },
-      { path: 'settings', component: RestaurantSettingsComponent },
-      { path: 'categories', component: CategoriesComponent },
-      { path: 'items', component: ItemsComponent }
+      { path: '', pathMatch: 'full', canActivate: [dashboardDefaultGuard], component: DashboardHomeComponent },
+      { path: 'settings', component: RestaurantSettingsComponent, canActivate: [ownerGuard] },
+      { path: 'categories', component: CategoriesComponent, canActivate: [ownerGuard] },
+      { path: 'items', component: ItemsComponent, canActivate: [ownerGuard] },
+      { path: 'security', component: AdminSecurityComponent, canActivate: [adminGuard] },
+      { path: 'approvals', component: RegistrationsApprovalsComponent, canActivate: [adminGuard] },
+      { path: 'access', component: AdminAccessControlComponent, canActivate: [adminGuard] },
+      { path: 'menu-access', component: AdminMenuAccessComponent, canActivate: [adminGuard] }
     ]
   },
   { path: '**', redirectTo: 'login' }

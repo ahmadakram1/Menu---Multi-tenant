@@ -8,15 +8,15 @@
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #f5f6f8;
+      --bg: #f7f4ef;
       --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --accent: #0f766e;
-      --accent-2: #14b8a6;
-      --border: #e5e7eb;
-      --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
-      --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
+      --text: #2a2a2a;
+      --muted: #6f675f;
+      --accent: #7c5a3a;
+      --accent-2: #b88455;
+      --border: #e7dfd5;
+      --shadow: 0 14px 40px rgba(35, 24, 16, 0.08);
+      --shadow-soft: 0 10px 24px rgba(35, 24, 16, 0.06);
       --radius-lg: 18px;
       --radius-md: 14px;
       --radius-sm: 10px;
@@ -36,13 +36,13 @@
       flex: 1;
     }
     body.dark {
-      --bg: #0f172a;
-      --card: #111827;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #2dd4bf;
-      --accent-2: #14b8a6;
-      --border: #1f2937;
+      --bg: #1a1511;
+      --card: #231d17;
+      --text: #f8f2eb;
+      --muted: #c5b5a5;
+      --accent: #d8a874;
+      --accent-2: #f0be89;
+      --border: #3a3027;
       --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
     }
     .container {
@@ -62,7 +62,7 @@
       padding: 14px 18px;
       border: 1px solid transparent;
       border-radius: var(--radius-lg);
-      background: linear-gradient(120deg, var(--card), rgba(20, 184, 166, 0.12));
+      background: linear-gradient(120deg, var(--card), rgba(184, 132, 85, 0.14));
       box-shadow: var(--shadow-soft);
     }
     .toolbar-left {
@@ -80,7 +80,7 @@
       border-radius: 10px;
       object-fit: cover;
       background: var(--card);
-      border: 2px solid rgba(20, 184, 166, 0.3);
+      border: 2px solid rgba(124, 90, 58, 0.28);
     }
     #restaurant-name {
       font-weight: 600;
@@ -345,6 +345,38 @@
     .empty.hidden {
       display: none;
     }
+    .status-screen {
+      display: grid;
+      place-items: center;
+      min-height: 58vh;
+      text-align: center;
+      padding: 24px;
+    }
+    .status-screen.hidden {
+      display: none;
+    }
+    .status-card {
+      width: min(560px, 100%);
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      gap: 10px;
+    }
+    .status-emoji {
+      font-size: 46px;
+      line-height: 1;
+    }
+    .status-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .status-message {
+      color: var(--muted);
+      font-size: 14px;
+    }
 
     .dialog-backdrop {
       position: fixed;
@@ -456,7 +488,27 @@
       .search-bar { flex-direction: row; }
       body.rtl .search-bar { flex-direction: row; }
       .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .items-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .items-grid { grid-template-columns: 1fr; }
+      .mat-card {
+        flex-direction: row-reverse;
+        min-height: 150px;
+      }
+      .mat-card img {
+        width: 44%;
+        min-width: 130px;
+        height: 100%;
+        object-fit: cover;
+      }
+      .mat-card-content {
+        width: 56%;
+        min-width: 0;
+      }
+      .item-desc {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+      }
     }
     @media (min-width: 992px) {
       .items-grid {
@@ -495,6 +547,13 @@
 
     <div id="items" class="items-grid hidden"></div>
     <div id="empty" class="empty hidden" hidden>No items found.</div>
+    <div id="status-screen" class="status-screen hidden">
+      <div class="status-card">
+        <div class="status-emoji">🔒</div>
+        <div class="status-title">Menu temporarily unavailable</div>
+        <div id="status-message" class="status-message">Please contact the administrator.</div>
+      </div>
+    </div>
   </div>
   <div class="footer-note">© 2026 جميع الحقوق محفوظة</div>
   </main>
@@ -579,7 +638,7 @@
     const API_BASE =
       new URLSearchParams(window.location.search).get('api_base') ||
       localStorage.getItem('api_base') ||
-      'http://localhost/StoreMenu/backend/public';
+      `${window.location.origin}/StoreMenu/backend/public`;
 
     const state = {
       language: (localStorage.getItem('admin_language') || 'en') === 'ar' ? 'ar' : 'en',
@@ -587,6 +646,7 @@
       query: '',
       showAllItems: false,
       restaurantId: '1',
+      restaurantSlug: '',
       theme: localStorage.getItem('menu_theme') === 'dark' ? 'dark' : 'light'
     };
 
@@ -623,6 +683,8 @@
     const categoriesEl = document.getElementById('categories');
     const itemsEl = document.getElementById('items');
     const emptyEl = document.getElementById('empty');
+    const statusScreenEl = document.getElementById('status-screen');
+    const statusMessageEl = document.getElementById('status-message');
     const dialogEl = document.getElementById('items-dialog');
     const dialogTitleEl = document.getElementById('dialog-title');
     const dialogItemsEl = document.getElementById('dialog-items');
@@ -639,7 +701,14 @@
     const themeToggleEl = document.getElementById('theme-toggle');
 
     function textFor(entity, key) {
-      return state.language === 'ar' ? entity[`${key}_ar`] : entity[`${key}_en`];
+      const primaryKey = state.language === 'ar' ? `${key}_ar` : `${key}_en`;
+      const secondaryKey = state.language === 'ar' ? `${key}_en` : `${key}_ar`;
+      const primary = String(entity?.[primaryKey] || '').trim();
+      if (primary) {
+        return primary;
+      }
+      const secondary = String(entity?.[secondaryKey] || '').trim();
+      return secondary;
     }
 
     function applyLanguage() {
@@ -675,8 +744,9 @@
       } else {
         whatsappEl.classList.remove('show');
       }
-      nameEl.textContent = textFor(localSettings, 'name') || 'Restaurant';
-      document.title = (localSettings.name_en || 'Menu').trim() || 'Menu';
+      const displayName = textFor(localSettings, 'name') || 'Business Menu';
+      nameEl.textContent = displayName;
+      document.title = displayName;
       updateFavicon();
       applyThemeSettings();
       renderCategories();
@@ -729,6 +799,18 @@
     function closeDialog() {
       dialogEl.classList.remove('open');
       dialogEl.setAttribute('aria-hidden', 'true');
+    }
+
+    function showStatus(message) {
+      statusMessageEl.textContent = message || 'Please contact the administrator.';
+      statusScreenEl.classList.remove('hidden');
+      categoriesEl.classList.add('hidden');
+      itemsEl.classList.add('hidden');
+      emptyEl.hidden = true;
+    }
+
+    function hideStatus() {
+      statusScreenEl.classList.add('hidden');
     }
 
     function normalizeInstagram(value) {
@@ -986,11 +1068,28 @@
       isLoading = true;
       showSpinner();
       try {
-        state.restaurantId =
-          new URLSearchParams(window.location.search).get('restaurant_id') || '1';
-        const response = await fetch(`${API_BASE}/menu.php?restaurant_id=${state.restaurantId}`);
+        const params = new URLSearchParams(window.location.search);
+        state.restaurantId = params.get('restaurant_id') || '1';
+        state.restaurantSlug = params.get('restaurant_slug') || '';
+
+        if (!state.restaurantSlug) {
+          const segments = window.location.pathname.split('/').filter(Boolean);
+          const menuIndex = segments.findIndex((part) => part.toLowerCase() === 'menu');
+          if (menuIndex >= 0 && segments.length > menuIndex + 1) {
+            state.restaurantSlug = decodeURIComponent(segments[menuIndex + 1] || '').trim();
+          }
+        }
+
+        let endpoint = `${API_BASE}/menu.php?restaurant_id=${state.restaurantId}`;
+        if (state.restaurantSlug) {
+          endpoint = `${API_BASE}/menu.php?restaurant_slug=${encodeURIComponent(state.restaurantSlug)}`;
+        }
+
+        const response = await fetch(endpoint);
         if (!response.ok) {
-          throw new Error('API error');
+          const errorPayload = await response.json().catch(() => ({}));
+          const message = errorPayload.error || 'Menu is currently unavailable.';
+          throw new Error(message);
         }
         const data = await response.json();
         if (data.restaurant) {
@@ -1012,8 +1111,13 @@
         }
         categories = data.categories || [];
         items = data.items || [];
-      } catch {
-        // keep localStorage data
+        hideStatus();
+      } catch (error) {
+        const unavailableMessage =
+          error instanceof Error ? error.message : 'Menu is currently unavailable. Please contact the administrator.';
+        showStatus(unavailableMessage);
+        categories = [];
+        items = [];
       } finally {
         isLoading = false;
         hideSpinner();

@@ -1,6 +1,7 @@
 <mat-nav-list class="sidebar-list">
   <a
     mat-list-item
+    *ngIf="!isAdmin"
     routerLink="/admin/settings"
     #settingsRla="routerLinkActive"
     routerLinkActive="active-link"
@@ -12,6 +13,7 @@
   </a>
   <a
     mat-list-item
+    *ngIf="!isAdmin"
     routerLink="/admin/categories"
     #categoriesRla="routerLinkActive"
     routerLinkActive="active-link"
@@ -23,6 +25,7 @@
   </a>
   <a
     mat-list-item
+    *ngIf="!isAdmin"
     routerLink="/admin/items"
     #itemsRla="routerLinkActive"
     routerLinkActive="active-link"
@@ -32,7 +35,55 @@
     <mat-icon matListItemIcon>restaurant_menu</mat-icon>
     {{ 'SIDEBAR.ITEMS' | t }}
   </a>
-  <a mat-list-item routerLink="/login" (click)="onNavigate()">
+  <a
+    mat-list-item
+    *ngIf="isAdmin"
+    routerLink="/admin/security"
+    #securityRla="routerLinkActive"
+    routerLinkActive="active-link"
+    [activated]="securityRla.isActive"
+    (click)="onNavigate()"
+  >
+    <mat-icon matListItemIcon>lock</mat-icon>
+    {{ 'SIDEBAR.SECURITY' | t }}
+  </a>
+  <a
+    mat-list-item
+    *ngIf="isAdmin"
+    routerLink="/admin/approvals"
+    #approvalsRla="routerLinkActive"
+    routerLinkActive="active-link"
+    [activated]="approvalsRla.isActive"
+    (click)="onNavigate()"
+  >
+    <mat-icon matListItemIcon>verified_user</mat-icon>
+    {{ 'SIDEBAR.APPROVALS' | t }}
+  </a>
+  <a
+    mat-list-item
+    *ngIf="isAdmin"
+    routerLink="/admin/access"
+    #accessRla="routerLinkActive"
+    routerLinkActive="active-link"
+    [activated]="accessRla.isActive"
+    (click)="onNavigate()"
+  >
+    <mat-icon matListItemIcon>toggle_on</mat-icon>
+    {{ 'SIDEBAR.ACCESS' | t }}
+  </a>
+  <a
+    mat-list-item
+    *ngIf="isAdmin"
+    routerLink="/admin/menu-access"
+    #menuAccessRla="routerLinkActive"
+    routerLinkActive="active-link"
+    [activated]="menuAccessRla.isActive"
+    (click)="onNavigate()"
+  >
+    <mat-icon matListItemIcon>event_available</mat-icon>
+    {{ 'SIDEBAR.MENU_ACCESS' | t }}
+  </a>
+  <a mat-list-item href="#" (click)="logout(); $event.preventDefault()">
     <mat-icon matListItemIcon>logout</mat-icon>
     {{ 'SIDEBAR.LOGOUT' | t }}
   </a>
